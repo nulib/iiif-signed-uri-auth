@@ -12,7 +12,7 @@ Cryptographic signature authorization can be used to create shareable links to r
 
 The term **auth signature** is used to refer to the cryptographically signed JavaScript Web Token containing the terms under which the request should be authorized.
 
-The terms **reference size**, **reference width**, and **reference height** are used to refer to the dimensions of the full, un-cropped image resource *after* the region and size parameters in the request are applied. As a trivial example, for underlying image content with a size of `8192x6144` and a request that begins with `/0,0,256,256/128,`, the **reference size** would be `4096x3072` (because the request is an effective 50% reduction).
+The terms **reference size**, **reference width**, and **reference height** are used to refer to the dimensions of the full, un-cropped image resource *after* the region and size parameters in the request are applied. As a trivial example, for underlying image content with a size of `8192x6144` and a request that begins with `/0,0,256,256/128,`, the **reference size** would be `4096x3072` (because the request is an effective 50% reduction). If the `size` is expressed as a `pct:` or `full`, the **reference size** will be calculated independent of the region.
 
 ## Auth Signature
 
@@ -45,6 +45,20 @@ where `:auth-signature` is a cryptographically signed JavaScript Web Token with 
 The token can be signed using either a symmetric (`HMAC`) or key pair (`RSA` or `ECDSA`) algorithm. Maintenance of the encryption secret or public/private keys is beyond the scope of this document.
 
 ### Validation
+
+```mermaid
+flowchart LR
+
+    A[Start] --> B[Decode token and verify signature]
+    B -->|Fail| Z[Reject / 403 Forbidden]
+    B -->|Pass| C[Check expires vs request time]
+    C -->|Fail| Z[Reject / 403 Forbidden]
+    C -->|Pass| D[Compare id, region, size, rotation, quality, format]
+    D -->|Fail| Z[Reject / 403 Forbidden]
+    D -->|Pass| E[Check reference size vs max-width and max-height]
+    E -->|Fail| Z[Reject / 403 Forbidden]
+    E -->|Pass| F[Approve Request]
+```
 
 Validation is carried out via a series of 4 tests. If any of the tests fails, the request is immediately rejected (e.g., with an HTTP `403 Forbidden` status) and the remainder of the tests skipped.
 
